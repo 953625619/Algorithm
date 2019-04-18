@@ -1,0 +1,354 @@
+package data_structure.graph;
+
+import data_structure.queue.LinkedQueue;
+import data_structure.stack.LinkedStack;
+import graph.DeathFirstSearch;
+
+import java.util.Arrays;
+
+/**
+ * 邻接矩阵
+ */
+public class MatrixGraph<T> {
+
+    private T[] vertexs;    //顶点集
+
+    private int vertexSize; //顶点个数
+
+    private int[][] edges;    //边集
+
+    private int edgeSize;   //边的个数
+
+    private boolean isDirection = false;    //默认无向图
+
+    private boolean isPower = false; //默认无权图
+
+    public MatrixGraph(int vlen, int elen, boolean isDirection,boolean isPower) {
+        vertexSize = 0;
+        edgeSize = 0;
+        this.isDirection = isDirection;
+        this.isPower = isPower;
+        vertexs = (T[])new Object[vlen];
+        edges = new int[vlen][vlen];
+        for (int i = 0; i < vertexs.length; i++) {
+            vertexs[i] = null;
+        }
+        for (int i = 0; i < edges.length; i++) {
+            for (int j = 0; j < edges[i].length; j++) {
+                if (isPower) {
+                    if (i == j)
+                        edges[i][j] = 0;
+                    else
+                        edges[i][j] = Integer.MAX_VALUE;
+                } else
+                    edges[i][j] = 0;
+            }
+        }
+    }
+
+    public void resize(int max){
+        T[] array1 =  (T[])new Object[max];
+        for (int i = 0; i < array1.length; i++) {
+            if (i < vertexs.length)
+                array1[i] = vertexs[i];
+            else
+                array1[i] = null;
+        }
+        vertexs = array1;
+        int[][] array2 = new int[max][max];
+        for (int i = 0; i < array2.length; i++) {
+            for (int j = 0; j < array2[i].length; j++) {
+                if (i < edges.length && j < edges[i].length)
+                    array2[i][j] = edges[i][j];
+                else
+                {
+                    if (isPower) {
+                        if (i == j)
+                            array2[i][j] = 0;
+                        else
+                            array2[i][j] = Integer.MAX_VALUE;
+                    } else
+                        array2[i][j] = 0;
+                }
+            }
+        }
+        edges = array2;
+    }
+
+    //顶点集为空
+    public boolean isEmptyVertexs() {
+        return vertexSize == 0;
+    }
+
+    //边集为空
+    public boolean isEmptyEdges() {
+        return edgeSize == 0;
+    }
+
+    //是否包含顶点
+    public boolean containsVertex(int index) {
+        if (isEmptyVertexs())
+            return false;
+        return getVertex(index) != null;
+    }
+
+    //是否包含边
+    public boolean containsEdge(int from, int to) {
+        if (isEmptyEdges())
+            return false;
+        if (isDirection)
+            return getEdge(from, to) != Integer.MAX_VALUE;
+        else
+            return getEdge(from, to) != 0;
+    }
+
+    //获取顶点
+    public T getVertex(int index) {
+        return vertexs[index];
+    }
+
+    //获取边
+    public int getEdge(int from, int to) {
+        return edges[from][to];
+    }
+
+    //获取顶点下标
+    public int locateVertex(T key){
+        int index = -1;
+        for (int i = 0; i < vertexs.length; i++) {
+            if (vertexs[i] != null && vertexs[i].equals(key))
+                return i;
+        }
+        return index;
+    }
+
+    //添加顶点
+    public void putVertex(int index, T vertex) {
+        if (index < 0 || index > vertexs.length)
+            return;
+        if (vertexSize == vertexs.length)
+            resize(vertexs.length * 2);
+        if (!containsVertex(index))
+            vertexSize++;
+        vertexs[index] = vertex;
+    }
+
+    public void insertVertex(T vertex){
+        if (vertexSize == vertexs.length)
+            resize(vertexs.length * 2);
+        vertexs[vertexSize++] = vertex;
+    }
+
+    //添加边
+    public void putEdge(T from, T to) {
+        putEdge(from, to, 1);
+    }
+
+    public void putEdge(T from, T to, int power) {
+        int fromIndex = locateVertex(from);
+        int toIndex = locateVertex(to);
+        if (fromIndex == -1 || toIndex == -1)
+            return;
+        if (!containsEdge(fromIndex, toIndex))
+            edgeSize++;
+        edges[fromIndex][toIndex] = power;
+        if (!isDirection)
+            edges[toIndex][fromIndex] = power;
+    }
+
+    //删除顶点
+    public void delVertexs(T key){
+        int index = locateVertex(key);
+        if (index == -1)
+            return;
+        delVertexsByIndex(index);
+    }
+
+    public void delVertexsByIndex(int index){
+        if (index < 0 || index > vertexs.length)
+            return;
+        if (!containsVertex(index))
+            return;
+        //同时要删除有关的边
+        if (outDegree(vertexs[index]) > 0) {
+            for (int j = 0; j < edges[index].length; j++) {
+                if (edges[index][j] != 0 && edges[index][j] < Integer.MAX_VALUE) {
+                    if (isPower)
+                        edges[index][j] = Integer.MAX_VALUE;
+                    else
+                        edges[index][j] = 0;
+                    edgeSize--;
+                }
+            }
+        }
+        if (inDegree(vertexs[index]) > 0) {
+            for (int i = 0; i < edges.length; i++) {
+                if (edges[i][index] != 0 && edges[index][index] < Integer.MAX_VALUE)
+                {
+                    if (isPower)
+                        edges[i][index] = Integer.MAX_VALUE;
+                    else
+                        edges[i][index] = 0;
+                    edgeSize--;
+                }
+            }
+        }
+        if (vertexSize == vertexs.length / 4)
+            resize(vertexs.length / 2);
+        vertexs[index] = null;
+        vertexSize--;
+    }
+
+    //删除边
+    public void delEdges(T from,T to){
+        int fromIndex = locateVertex(from);
+        int toIndex = locateVertex(to);
+        if (fromIndex == -1 || toIndex == -1)
+            return;
+        if (!containsEdge(fromIndex,toIndex))
+            return;
+        if (isDirection)
+            if (isPower)
+                edges[fromIndex][toIndex] = Integer.MAX_VALUE;
+            else
+                edges[fromIndex][toIndex] = 0;
+        else
+        {
+            if (isPower)
+            {
+                edges[fromIndex][toIndex] = Integer.MAX_VALUE;
+                edges[toIndex][fromIndex] = Integer.MAX_VALUE;
+            }
+            else
+            {
+                edges[fromIndex][toIndex] = 0;
+                edges[toIndex][fromIndex] = 0;
+            }
+        }
+        edgeSize--;
+    }
+
+    //出度
+    public int outDegree(T vertex){
+        int index = locateVertex(vertex);
+        if (index == -1)
+            return -1;
+        int degree = 0;
+        for (int i = 0;i < edges[index].length;i++)
+            if (edges[index][i] != 0 && edges[index][i] < Integer.MAX_VALUE)
+                degree++;
+        return degree;
+    }
+
+    //入度
+    public int inDegree(T vertex){
+        int index = locateVertex(vertex);
+        if (index == -1)
+            return -1;
+        int degree = 0;
+        for (int i = 0;i < edges.length;i++)
+            if (edges[i][index] != 0 && edges[i][index] < Integer.MAX_VALUE)
+                degree++;
+        return degree;
+    }
+
+    //总度
+    public int degree(T vertex){
+        int index = locateVertex(vertex);
+        if (index == -1)
+            return -1;
+        int degree = inDegree(vertex)+outDegree(vertex);
+        if (isDirection)
+            return degree;
+        return degree / 2;
+    }
+
+    //最大度
+    public int maxDegree(){
+        int max = degree(vertexs[0]);
+        for (int i = 1; i < vertexs.length; i++) {
+            int temp = degree(vertexs[i]);
+            if (max < temp)
+                max = temp;
+        }
+        return max;
+    }
+
+    //平均度
+    public int avgDegree(){
+        int sum = degree(vertexs[0]);
+        for (int i = 1; i < vertexs.length; i++) {
+            sum += degree(vertexs[i]);
+        }
+        return sum / vertexSize;
+    }
+
+    //深度遍历
+    public void DFS_Traverse(){
+
+    }
+
+    //广度遍历
+    public void HFS_Traverse(){
+        boolean[] index = new boolean[vertexs.length];
+        LinkedQueue<T> queue = new LinkedQueue<>();
+        for (int i = 0; i < vertexs.length; i++) {
+            if (vertexs[i] == null)
+                continue;
+            if (index[i])
+                continue;
+            queue.enQueue(vertexs[i]);
+            index[i] = true;
+            for (int j = i; j < vertexs.length; j++) {
+                if (index[j])
+                    continue;
+                if (edges[i][j] != 0 && edges[i][j] < Integer.MAX_VALUE)
+                {
+                    index[j] = true;
+                    queue.enQueue(vertexs[j]);
+                }
+            }
+        }
+        for (T i:
+             queue) {
+            System.out.printf("%d-",i.toString());
+        }
+    }
+
+    public void print(){
+        for (int i = 0; i < edges.length; i++) {
+            for (int j = 0; j < edges[i].length; j++) {
+                if (edges[i][j] == Integer.MAX_VALUE)
+                    System.out.printf("%s\t","∞");
+                else
+                    System.out.printf("%d\t",edges[i][j]);
+            }
+            System.out.println();
+        }
+    }
+
+    public static void main(String[] args) {
+        MatrixGraph<String> graph = new MatrixGraph<>(4,4,true,false);
+        graph.insertVertex("A");
+        graph.insertVertex("B");
+        graph.insertVertex("C");
+        graph.insertVertex("D");
+        graph.insertVertex("E");
+        graph.insertVertex("F");
+        graph.putEdge("A","C");
+        graph.putEdge("B","F");
+        graph.putEdge("C","E");
+        graph.putEdge("C","D");
+        graph.putEdge("F","A");
+        graph.print();
+        System.out.println();
+        graph.delVertexs("C");
+        graph.print();
+        System.out.println();
+        System.out.println(graph.inDegree("A")+" "+graph.outDegree("A"));
+
+        graph.delEdges("B","F");
+        graph.print();
+        System.out.println();
+    }
+}
