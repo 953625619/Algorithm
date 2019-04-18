@@ -1,0 +1,152 @@
+package data_structure.graph;
+
+import java.util.Arrays;
+
+/**
+ * 边集数组
+ * @param <T>
+ */
+public class EdgeArrayGraph<T> {
+    //顶点集
+    private T[] vertexs;
+    //边集
+    private Edge<T>[] edges;
+    //顶点个数
+    private int vertexSize;
+    //边个数
+    private int edgeSize;
+
+    public EdgeArrayGraph(int vertexSize, int edgeSize) {
+        this.vertexSize = vertexSize;
+        this.edgeSize = edgeSize;
+    }
+
+    public EdgeArrayGraph(T[] vs, T[][] es, int vertexSize, int edgeSize) {
+        this.vertexSize = vertexSize;
+        this.edgeSize = edgeSize;
+        vertexs = (T[]) new Object[vertexSize];
+        for (int i = 0; i < vertexs.length; i++) {
+            vertexs[i] = vs[i];
+        }
+        edges =  new Edge[edgeSize];
+        for (int i = 0; i < edges.length; i++) {
+            Edge<T> edge = null;
+            if (es[i].length == 2)
+                edge = new Edge<>(es[i][0],es[i][1]);
+            else if (es[i].length == 3)
+                edge = new Edge<>(es[i][0],es[i][1],Double.parseDouble(es[i][2].toString()));
+            edges[i] = edge;
+        }
+    }
+
+    public void resize(int max){
+        T[] vs = (T[]) new Object[max];
+        vs = Arrays.copyOf(vertexs,max);
+        vertexs = vs;
+        Edge<T>[] es =  new Edge[max];
+        for (int i = 0; i < max; i++) {
+            if (i < edgeSize)
+                es[i] = edges[i];
+            else
+                es[i] = null;
+        }
+    }
+
+    public int getVertexSize() {
+        return vertexSize;
+    }
+
+    public int getEdgeSize() {
+        return edgeSize;
+    }
+
+    public boolean containsVertex(T vertex){
+        return locatedVertex(vertex) == -1;
+    }
+
+    public boolean containsEdge(T from,T to){
+        Edge<T> edge = new Edge<>(from,to);
+        return locatedEdge(edge) == -1;
+    }
+
+    public int locatedVertex(T vertex){
+        for (int i = 0; i < vertexs.length; i++) {
+            if (vertexs[i].equals(vertex))
+                return i;
+        }
+        return -1;
+    }
+
+    public int locatedEdge(Edge<T> edge){
+        for (int i = 0; i < edges.length; i++) {
+            if (edges[i].equals(edge))
+                return i;
+        }
+        return -1;
+    }
+
+    public T getVertex(int index){
+        if (index < 0 || index > vertexSize)
+            return null;
+        return vertexs[index];
+    }
+
+    public Edge<T> getEdge(int index){
+        if (index < 0 || index > edgeSize)
+            return null;
+        return edges[index];
+    }
+
+    public void addVertex(T vertex){
+        if (vertexSize == vertexs.length)
+            resize(vertexSize * 2);
+        vertexs[vertexSize++] = vertex;
+    }
+
+    public void addEdge(T from,T to){
+        addEdge(from, to,0);
+    }
+
+    public void addEdge(T from,T to,double power){
+        Edge<T> edge = new Edge<>(from,to,power);
+        if (edgeSize == edges.length)
+            resize(edgeSize * 2);
+        edges[edgeSize++] = edge;
+    }
+
+    public void putVertex(int index,T vertex){
+        if (getVertex(index) == null)
+            addVertex(vertex);
+        else
+            vertexs[index] = vertex;
+    }
+
+    public void putEdge(int index,T from,T to){
+        putEdge(index, from, to,0);
+    }
+
+    public void putEdge(int index,T from,T to,double power){
+        if (getEdge(index) == null)
+            addEdge(from, to,power);
+        else
+            edges[index] = new Edge<>(from,to,power);
+    }
+
+    public void deleteVertex(int index){
+        if (getVertex(index) == null)
+            return;
+        for (int i = index; i < vertexSize - 1; i++) {
+            vertexs[i] = vertexs[i+1];
+        }
+        vertexSize--;
+    }
+
+    public void deleteEdge(int index){
+        if (getEdge(index) == null)
+            return;
+        for (int i = index; i < edgeSize - 1; i++) {
+            edges[i] = edges[i+1];
+        }
+        edgeSize--;
+    }
+}
