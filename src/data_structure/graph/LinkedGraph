@@ -1,0 +1,331 @@
+package data_structure.graph;
+
+import data_structure.node.LinkNode;
+import data_structure.linear.LinkedLinear;
+import data_structure.queue.LinkedQueue;
+
+/**
+ * 邻接表
+ *
+ * @param <T>
+ */
+public class LinkedGraph<T> {
+
+    //结点数组，每个结点都有一条链表
+    private LinkedLinear<T>[] linear;
+
+    private int vertexSize;
+
+    private int edgeSize;
+
+    private boolean isDirection = false;
+
+    private boolean isPower = false;
+
+    public LinkedGraph(int len, boolean isDirection, boolean isPower) {
+        linear = new LinkedLinear[len];
+        for (int i = 0; i < linear.length; i++) {
+            linear[i] = new LinkedLinear<>();
+        }
+        this.isDirection = isDirection;
+        this.isPower = isPower;
+    }
+
+    public LinkedGraph(int len, boolean isDirection, boolean isPower,T[] v,T[][] e){
+        linear = new LinkedLinear[len];
+        this.isDirection = isDirection;
+        this.isPower = isPower;
+        for (int i = 0; i < linear.length; i++) {
+            linear[i] = new LinkedLinear<>();
+        }
+        for (int i = 0; i < v.length; i++) {
+            insertVertex(v[i]);
+        }
+        for (int i = 0; i < e.length; i++) {
+            if (e[i].length == 2)
+                putEdge(e[i][0],e[i][1]);
+            else if (e[i].length == 3)
+                putEdge(e[i][0],e[i][1],Double.parseDouble(e[i][2].toString()));
+        }
+    }
+
+    private void resize(int max) {
+        LinkedLinear<T>[] array = new LinkedLinear[max];
+        for (int i = 0; i < array.length; i++) {
+            if (i < linear.length && linear[i] != null)
+                array[i] = linear[i];
+            else
+                array[i] = new LinkedLinear<>();
+        }
+        linear = array;
+    }
+
+    //顶点是否空
+    public boolean isVertexEmpty() {
+        return vertexSize == 0;
+    }
+
+    //边是否空
+    public boolean isEdgeEmpty() {
+        return edgeSize == 0;
+    }
+
+    //顶点个数
+    public int getVertexSize() {
+        return vertexSize;
+    }
+
+    //边个数
+    public int getEdgeSize() {
+        return edgeSize;
+    }
+
+    //是否是有向图
+    public boolean isDirection() {
+        return isDirection;
+    }
+
+    //是否是带权图
+    public boolean isPower() {
+        return isPower;
+    }
+
+    //是否包含顶点
+    public boolean containsVertex(T vertex) {
+        return locateVertex(vertex) != -1;
+    }
+
+    //是否包含边
+    public boolean containsEdge(T from, T to) {
+        if (!containsVertex(from) || !containsVertex(to))
+            return false;
+        int fromIndex = locateVertex(from);
+        for (T vertex : linear[fromIndex]) {
+            if (vertex.equals(from))
+                continue;
+            if (vertex.equals(to))
+                return true;
+        }
+        return false;
+    }
+
+    //获取顶点
+    public T getVertex(int index) {
+        if (index < 0 || index > linear.length)
+            return null;
+        return linear[index].getByIndex(0).getData();
+    }
+
+    //获取边
+    public LinkNode<T> getEdge(T from, T to){
+        int fromIndex = locateVertex(from);
+        for (T vertex : linear[fromIndex]) {
+            if (vertex.equals(from))
+                continue;
+            if (vertex.equals(to))
+                return linear[fromIndex].get(vertex);
+        }
+        return null;
+    }
+
+    //获取顶点索引
+    public int locateVertex(T vertex) {
+        for (int i = 0; i < linear.length; i++) {
+            T key = linear[i].getByIndex(0).getData();
+            if (key.equals(vertex))
+                return i;
+        }
+        return -1;
+    }
+
+    //加入顶点
+    public void insertVertex(T vertex) {
+        if (vertexSize == linear.length)
+            resize(linear.length * 2);
+        linear[vertexSize++].add(vertex);
+
+    }
+
+    //加入边
+    public void putEdge(T from, T to) {
+        putEdge(from, to, 0);
+    }
+
+    public void putEdge(T from, T to, double power) {
+        if (!containsVertex(from) || !containsVertex(to) || containsEdge(from, to))
+            return;
+        int fromIndex = locateVertex(from);
+        linear[fromIndex].addGraph(to, power);
+        if (!isDirection)
+            putEdge(to, from, power);
+        edgeSize++;
+    }
+
+    //删除顶点
+    public void deleteVertex(T key) {
+        if (!containsVertex(key))
+            return;
+        int index = locateVertex(key);
+        for (int i = index; i < linear.length - 1; i++) {
+            linear[i] = linear[i + 1];
+        }
+        vertexSize--;
+        if (vertexSize == linear.length / 4)
+            resize(linear.length / 2);
+        //记得删除两条边
+        for (int i = 0; i < linear.length; i++)
+            linear[i].deleteByElement(key);
+    }
+
+    //删除边
+    public void deleteEdge(T from, T to) {
+        if (!containsEdge(from, to))
+            return;
+        int fromIndex = locateVertex(from);
+        linear[fromIndex].deleteByElement(to);
+        edgeSize--;
+        if (!isDirection)
+            deleteEdge(to, from);
+    }
+
+    //出度
+    public int outDegree(T vertex) {
+        int index = locateVertex(vertex);
+        if (index < 0)
+            return -1;
+        return linear[index].getSize() - 1;
+    }
+
+    //入度
+    public int inDegree(T vertex) {
+        int degree = 0;
+        int index = locateVertex(vertex);
+        if (index < 0)
+            return -1;
+        for (int i = 0; i < linear.length; i++) {
+            if (i == index)
+                continue;
+            if (linear[i].get(vertex) != null)
+                degree++;
+        }
+        return degree;
+    }
+
+    //起点,入度为0的顶点
+    public Iterable<T> sources(){
+        LinkedQueue<T> queue = new LinkedQueue<>();
+        for (int i = 0; i < vertexSize; i++) {
+            T vertex = getVertex(i);
+            if (inDegree(vertex) == 0)
+                queue.enQueue(vertex);
+        }
+        return queue;
+    }
+
+    //终点,出度为0的顶点
+    public Iterable<T> sinks(){
+        LinkedQueue<T> queue = new LinkedQueue<>();
+        for (int i = 0; i < vertexSize; i++) {
+            T vertex = getVertex(i);
+            if (outDegree(vertex) == 0)
+                queue.enQueue(vertex);
+        }
+        return queue;
+    }
+
+    //总度
+    public int degree(T vertex) {
+        int index = locateVertex(vertex);
+        if (index == -1)
+            return -1;
+        int degree = inDegree(vertex) + outDegree(vertex);
+        if (isDirection)
+            return degree;
+        return degree / 2;
+    }
+
+    //最大度
+    public int maxDegree() {
+        int max = degree(linear[0].getByIndex(0).getData());
+        for (int i = 1; i < linear.length; i++) {
+            int temp = degree(linear[i].getByIndex(0).getData());
+            if (max < temp)
+                max = temp;
+        }
+        return max;
+    }
+
+    //平均度
+    public int avgDegree() {
+        int sum = degree(linear[0].getByIndex(0).getData());
+        for (int i = 1; i < linear.length; i++) {
+            sum += degree(linear[i].getByIndex(0).getData());
+        }
+        return sum / vertexSize;
+    }
+
+    //获取所有邻接顶点
+    public Iterable<T> adjoinVertexs(T vertex){
+        if (!containsVertex(vertex))
+            return null;
+        int index = locateVertex(vertex);
+        return linear[index];
+    }
+
+    //反向图
+    public LinkedGraph<T> reverse(){
+        if (!isDirection)
+            return null;
+        LinkedGraph<T> graph = new LinkedGraph<>(vertexSize,true,isPower);
+        for (int i = 0; i < vertexSize; i++) {
+            graph.insertVertex(linear[i].getByIndex(0).getData());
+        }
+        for (int i = 0; i < vertexSize; i++) {
+            T origin = (T) linear[i].getByIndex(0).getData();
+            for (int j = 1; j < linear[i].getSize(); j++) {
+                graph.putEdge((T) linear[i].getByIndex(j).getData(),origin);
+            }
+        }
+        return graph;
+    }
+
+    public void print() {
+        for (int i = 0; i < linear.length; i++) {
+            if (linear[i].isEmpty())
+                continue;
+            for (int j = 0; j < linear[i].getSize(); j++) {
+                if (j == 0)
+                    System.out.printf("%s:", linear[i].getByIndex(j).getData());
+                else
+                    System.out.printf("%s ",linear[i].getByIndex(j).getData()+"["+linear[i].getByIndex(j).getPower()+"]" );
+            }
+            System.out.println();
+        }
+    }
+
+    public static void main(String[] args) {
+        String[] v = {"A","B","C","D","E","F"};
+        String[][] e = {{"A","C","1.1"},{"B","F","1.12"},{"C","E","2.4"},{"C","F","3.5"},{"F","A","-9"}};
+        LinkedGraph<String> graph = new LinkedGraph<>(4, false, true,v,e);
+//        DeathFirstSearch<String> dfs = new DeathFirstSearch<>(graph);
+//        graph.insertVertex("A");
+//        graph.insertVertex("B");
+//        graph.insertVertex("C");
+//        graph.insertVertex("D");
+//        graph.insertVertex("E");
+//        graph.insertVertex("F");
+//        graph.putEdge("A", "C");
+//        graph.putEdge("B", "F");
+//        graph.putEdge("C", "E");
+//        graph.putEdge("C", "F");
+//        graph.putEdge("F", "A");
+//        graph.print();
+//        System.out.println();
+//        graph.deleteVertex("C");
+//        graph.print();
+//        System.out.println();
+//        System.out.println(graph.inDegree("A") + " " + graph.outDegree("A"));
+//        graph.deleteEdge("B", "F");
+//        graph.print();
+    }
+}
