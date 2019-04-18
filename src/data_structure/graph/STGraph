@@ -1,0 +1,75 @@
+package data_structure.graph;
+
+import data_structure.ST.LinearSurveyST;
+
+public class STGraph<T extends Comparable<T>> {
+    //符号表
+    private LinearSurveyST<T,Integer> st;
+    //反向索引数组
+    private T[] indexs;
+    //整形图
+    private IntegerGraph graph;
+
+
+    public STGraph(int len, boolean isDirection, boolean isPower){
+        st = new LinearSurveyST<>(len);
+        indexs = (T[])new Comparable[len];
+        graph = new IntegerGraph(len,isDirection,isPower);
+    }
+
+    public STGraph(int len, boolean isDirection, boolean isPower,T[] vertexs,T[][] edges){
+        st = new LinearSurveyST<>(len);
+        indexs = (T[])new Comparable[len];
+        graph = new IntegerGraph(len,isDirection,isPower);
+        for (int i = 0; i < vertexs.length; i++) {
+            st.put(vertexs[i],i);
+            indexs[i] = vertexs[i];
+            graph.insertVertex(i);
+        }
+        for (int i = 0; i < edges.length; i++) {
+            if (edges[i].length == 2)
+                graph.putEdge(st.get(edges[i][0]),st.get(edges[i][1]));
+            else if (edges[i].length == 3)
+                graph.putEdge(st.get(edges[i][0]),st.get(edges[i][1]),Double.parseDouble(edges[i][2].toString()));
+        }
+    }
+
+    //是否包含顶点
+    public boolean contains(T s){
+        return st.contains(s);
+    }
+
+    //顶点个数
+    public int vertexSize(){
+        return st.getSize();
+    }
+
+    //边个数
+    public int edgeSize(){
+        return graph.getEdgeSize();
+    }
+
+    //获取顶点索引
+    public int index(T s){
+//        System.out.println(s+" "+st.get(s));
+        return st.get(s);
+    }
+
+    //根据索引获取顶点
+    public T get(int index){
+        return indexs[index];
+    }
+
+    //获取图
+    public IntegerGraph graph(){
+        return graph;
+    }
+
+    public static void main(String[] args) {
+        String[] v = {"A","B","C","D","E","F"};
+        String[][] e = {{"A","C"},{"B","F"},{"C","E"},{"C","F"},{"F","A"}};
+        STGraph graph = new STGraph(v.length,false,false,v,e);
+        System.out.println(graph.get(0));
+        System.out.println(graph.index("B"));
+    }
+}
